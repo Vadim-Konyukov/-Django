@@ -1,0 +1,187 @@
+{% extends 'index.html' %}
+{% load static %}
+{% block content %}
+<div class="container">
+    <h4 class="text-center pt-4 pb-4"></h4>
+    <div class="row">
+            <div class="col-md-4">
+            <div class="card p-4">
+                <form action="{% url 'category' pk=category.id %}" method="GET" id="filterForm">
+                <h4 class="pb-3">Брэнд</h4>
+                    {% for brand in category.get_brands_sorted %}
+                        <div class="form-check">
+                          <input class="form-check-input" type="checkbox" name="brand" id="{{ brand.id }}-brand" value="{{ brand.name }}" onchange="setCheckedValueFromLocalStorage('{{ brand.id }}-brand')">
+                          <label class="form-check-label" for="{{ brand.id }}-brand">
+                              {{ brand.name }}
+                          </label>
+                        </div>
+                    {% endfor %}
+                <hr>
+                {% for fd, html in filter_data.items %}
+                    <h4 class="pb-3">{{ fd }}</h4>
+                    {% for html_data in html %}
+                        {{ html_data|safe }}
+                    {% endfor %}
+                    <hr>
+                {% endfor %}
+                <div class="row mb-3">
+                <div class="col-md-6">
+                      <label for="min-price" class="form-label">Цена от</label>
+                      <input type="number" class="form-control" name="min-price" id="min-price-{{ category.id }}"
+                             placeholder="Цена от: {{ price_range.minimum }}" onchange="setCheckedValueFromLocalStorage('min-price-{{ category.id }}')">
+                    </div>
+                <div class="col-md-6 mb-3">
+                      <label for="max-price" class="form-label">Цена до</label>
+                      <input type="number" class="form-control" name="max-price" id="max-price-{{ category.id }}"
+                             placeholder="Цена до: {{ price_range.maximum }}" onchange="setCheckedValueFromLocalStorage('max-price-{{ category.id }}')">
+                </div>
+                <div id="slider-range" class="pt-2" style="height: 13px;"></div>
+                </div>
+                <button type="submit" class="btn btn-primary">Фильтр <i class="fa-solid fa-filter"></i></button>
+                <button type="submit" class="btn btn-danger" id="reset-filter">Сбросить<i class="fa-solid fa-power-off"></i></button>
+                </form>
+            </div>
+
+        </div>
+        <div class="col-md-{% if filter_data %}8{% else %}12{% endif %}">
+                <div class="row">
+                    {% for p in page_obj %}
+                        <div class="col-md-3 mb-5">
+                        <img class="card-img-top" src="{{ p.image.url }}" alt="..." />
+                        </div>
+                        <div class="col-md-7 mb-5" style="padding-left: 55px;">
+                            <p class="fw-bolder">{{ p.title }}</p>
+
+                                <p style="font-size: 12px;"><span style="color:grey"></span> <span style="font-size: 14px;"></span></p>
+
+                        </div>
+                        <div class="col-md-2 mb-5">
+                            <p class="fw-bolder text-center">{{ p.get_price }}</p>
+                            <div class="card-footer p-4 pt-0 border-top-0 bg-transparent justify-content-center">
+                                <a class="btn btn-primary mt-auto" href="{{ p.get_absolute_url }}">Подробно</a></div>
+                                    {% if request.user.is_authenticated %}
+                                    <div class="text-center">
+                                        <form action="{% url 'add_to_cart' %}" method="POST">
+                                            {% csrf_token %}
+
+                                            <input type="hidden" name="product_id" value="{{ p.id }}">
+                                            <div class="form-check form-check-inline">
+                                            <input type="submit" class="btn btn-outline-dark" value="Добавить в корзину">
+                                            </div>
+                                        </form>
+                                    </div>
+                                    {% else %}
+                                    {% include 'includes/login_or_register.html' %}
+                                    {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+
+                {% if page_obj.paginator.num_pages > 1 %}
+                <hr>
+                <div class="col-md-12 justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <a class="btn btn-outline-primary mb-4" href="?page={{ page_obj.previous_page_number }}&{{ request.GET.urlencode }}"><< Предыдущая страница</a>
+                    {% if page_obj.number > 3 %}
+                        <a class="btn btn-outline-primary mb-4" href="?page=1&{{ request.GET.urlencode }}">1</a>
+                    {% if page_obj.number > 4 %}
+                        <button class="btn btn-outline-primary mb-4" disabled="">...</button>
+                    {% endif %}
+                    {% endif %}
+                    {% endif %}
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <a class="btn btn-outline-primary mb-4" href="?page={{ num }}&{{ request.GET.urlencode }}">{{ num }}</a>
+                            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <a class="btn btn-outline-primary mb-4" href="?page={{ num }}&{{ request.GET.urlencode }}">{{ num }}</a>
+                        {% endif %}
+                    {% endfor %}
+                    {% if page_obj.has_next %}
+                    {% if page_obj.number < page_obj.paginator.num_pages|add:'-3' %}
+                    <button class="btn btn-outline-primary mb-4" disabled="">...</button>
+                    <a class="btn btn-outline-primary mb-4" href="?page={{ page_obj.paginator.num_pages }}&{{ request.GET.urlencode }}">{{ page_obj.paginator.num_pages }}</a>
+                    {% elif page_obj.number < page_obj.paginator.num_pages|add:'-2' %}
+                    <a class="btn btn-outline-primary mb-4" href="?page={{ page_obj.paginator.num_pages }}&{{ request.GET.urlencode }}">{{ page_obj.paginator.num_pages }}</a>
+                    {% endif %}
+                    <a class="btn btn-outline-primary mb-4" href="?page={{ page_obj.next_page_number }}&{{ request.GET.urlencode }}">Следующая страница >></a>
+                    {% endif %}
+                </div>
+                {% endif %}
+                </div>
+        </div>
+    </div>
+{% endblock content %}
+{% block js %}
+    <script>
+    let minPrice = 0;
+    let maxPrice = 0;
+    if(localStorage.getItem('min-price-{{ category.id }}')){
+        minPrice = localStorage.getItem('min-price-{{ category.id }}')
+    }
+    if(localStorage.getItem('max-price-{{ category.id }}')){
+        maxPrice = localStorage.getItem('max-price-{{ category.id }}')
+    }else{
+        maxPrice = {{ price_range.maximum }}
+    }
+    $("#slider-range").slider({
+        range: true,
+        min: 0,
+        max: {{ price_range.maximum }},
+        values: [minPrice, maxPrice],
+        slide: function (event, ui){
+            $("#min-price-{{ category.id }}").val(ui.values[0]);
+            localStorage.setItem('min-price-{{ category.id }}', ui.values[0])
+            $("#max-price-{{ category.id }}").val(ui.values[1]);
+            localStorage.setItem('max-price-{{ category.id }}', ui.values[1])
+        }
+    })
+    </script>
+    <script>
+        function setCheckedValueFromLocalStorage(value){
+            if(document.getElementById(value).checked){
+                localStorage.setItem(value, "1");
+            }else{
+                localStorage.setItem(value, "0")
+            }
+        }
+    </script>
+    <script>
+        $(window).on('load', function (){
+            let urlParams = new URLSearchParams(window.location.search)
+            if(urlParams.size == 0){
+                let elements = document.getElementById('filterForm').elements;
+                for (let i = 0, element; element = elements[i++];){
+                    if(element.id.match(/^\d/)){
+                        if(localStorage.getItem(element.id) == "1"){
+                            $("#" + element.id).removeAttr("checked")
+                        }
+                    }
+                }
+                localStorage.clear()
+            }
+        })
+    </script>
+    <script>
+        $("#reset-filter").on('click', function (e){
+            e.preventDefault()
+            localStorage.clear()
+            let clean_uri = location.protocol + "//" + location.host + location.pathname
+            window.history.replaceState({}, document.title, clean_uri)
+            window.location.reload()
+        })
+    </script>
+    <script>
+        let elements = document.getElementById('filterForm').elements;
+        for (let i = 0, element; element = elements[i++];){
+            if(element.id === 'min-price-{{ category.id }}' || element.id === 'max-price-{{ category.id }}'){
+                $("#" + element.id).val(localStorage.getItem(element.id))
+            }
+            if(element.id.match(/^\d/)){
+                console.log(element)
+                if(localStorage.getItem(element.id) == "1"){
+                    $("#" + element.id).attr("checked", "")
+                }
+            }
+        }
+    </script>
+{% endblock js %}

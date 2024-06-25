@@ -1,0 +1,63 @@
+{% extends 'index.html' %}
+{% block content %}
+<div class="container">
+        <h4 class="text-center pt-4 pb-4">Ваша корзина</h4>
+        {% if cart.items.count %}
+        <div class="card">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th scope="col">Товар</th>
+                  <th scope="col">Изображение</th>
+                  <th scope="col">Стоимость</th>
+                  <th scope="col">Кол-во</th>
+                  <th scope="col">Общая стоимость</th>
+                  <th scope="col">Действие</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for product, item in cart.get_cart_items %}
+                <tr>
+                  <td>{{ product.title }}</td>
+                  <td><img src="{{ product.image.url }}" height="100%" width="200px"></td>
+                  <td>{{ product.get_price }}</td>
+                  <td>
+                      <form action="{% url 'change_qty' %}" method="POST">
+                          {% csrf_token %}
+                          <input type="hidden" name="item_id" value="{{ item.id }}">
+                          <input class="form-control text-center me-3" id="inputQuantity" name="qty" type="number" value="{{ item.qty }}" min="1" max="5" style="max-width: 4rem" />
+                          <br>
+                          <input type="submit" class="btn btn-outline-dark mt-auto" value="Пересчитать">
+                      </form>
+                  </td>
+                  <td>{{ item.get_total_cost }}</td>
+                    <td><a href="{% url 'remove_from_cart' item_id=item.id %}"><button class="btn btn-danger">Удалить из корзины</button></a></td>
+                </tr>
+                {% endfor %}
+                <tr>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                    <td><strong>Итого:</strong>{{ cart.get_total_cost }}</td>
+                </tr>
+                  <tr>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td><a href="{% url 'make_order' %}"><button type="button" class="btn btn-primary btn-lg">Перейти к оформлению</button></a></td>
+                </tr>
+              </tbody>
+            </table>
+        </div>
+        {% else %}
+        <h4 class="text-center pt-4 pb-4">Ваша корзина пуста</h4>
+        {% endif %}
+    </div>
+{% endblock content %}
+
+
+
